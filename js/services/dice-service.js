@@ -1,4 +1,4 @@
-﻿appModule.service("diceService", ["messageService", function (messageService) {
+﻿appModule.service("diceService", ["messageService", "hangoutsService", function (messageService, hangoutsService) {
 
     this.dice = {
         "Green": ["S", "S", "SS", "A", "A", "SA", "AA", ""],
@@ -21,11 +21,11 @@
         var message = {
             messageId: messageService.getNextMessageId(),
             type: "html",
-            participantId: gapi.hangout.getLocalParticipant().id,
+            participantId: hangoutsService.getLocalParticipant().id,
             data: { html: "<span class='standard-die-roll'>" + roll + followingText + "</span>" }
         };
 
-        gapi.hangout.data.setValue(message.messageId, JSON.stringify(message));
+        hangoutsService.data.setValue(message.messageId, JSON.stringify(message));
     }
 
     // Roll all the Star Wars dice the user has selected
@@ -49,12 +49,12 @@
             var message = new Object();
             message.messageId = messageService.getNextMessageId();
             message.type = "roll";
-            message.participantId = gapi.hangout.getLocalParticipant().id;
+            message.participantId = hangoutsService.getLocalParticipant().id;
             message.data = new Object();
             message.data.diceResults = diceResults;
             message.data.overallResult = calculateOverallRollResult(diceResults);
 
-            gapi.hangout.data.setValue(message.messageId, JSON.stringify(message));
+            hangoutsService.data.setValue(message.messageId, JSON.stringify(message));
         }
     }
 

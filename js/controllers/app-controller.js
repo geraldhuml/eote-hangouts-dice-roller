@@ -1,17 +1,27 @@
-﻿appModule.controller("appController", ["$scope", "$compile", "diceService", "messageService",
-    function ($scope, $compile, diceService, messageService) {
+﻿appModule.controller("appController", ["$scope", "$compile", "diceService", "messageService", "hangoutsService",
+    function ($scope, $compile, diceService, messageService, hangoutsService) {
         var outputArea = angular.element(document.getElementById('outputArea'));
 
+        // Initialization function for the controller
         $scope.init = function () {
             $scope.destiny = "";
+
+            // If destiny tokens have already been added, make sure the participant now joining sees the correct current state
+            if (hangoutsService.data.getValue('destiny')) {
+                $scope.destiny = hangoutsService.data.getValue('destiny');
+            }
+
             $scope.resetAfterRoll = false;
 
             // Set the dice quantities when the app first loads
             $scope.diceQuantities = [];
             $scope.resetDiceQuantities();
             $scope.numericDieType = 100;
+
+            $scope.contentLoaded = true;
         }
 
+        // Set quantities of all dice to zero
         $scope.resetDiceQuantities = function () {
             for (var color in diceService.dice) {
                 $scope.diceQuantities[color] = 0;
@@ -19,14 +29,17 @@
             $scope.diceQuantities['Numeric'] = 0;
         }
 
+        // Insert a break line in the output area
         $scope.insertBreak = function () {
             outputArea.prepend("<hr/>");
         }
 
+        // Clear all the messages from the output area
         $scope.clearMessages = function () {
             outputArea.html("");
         }
 
+        // Roll all the selected dice
         $scope.roll = function () {
             var qty = 0;
             for (var color in diceService.dice) {
@@ -46,10 +59,11 @@
             }
         }
 
-        $scope.rollStandardDie = function (maxValue, postText) {
-            diceService.rollStandardDie(maxValue, postText);
-        }
+        //$scope.rollStandardDie = function (maxValue, postText) {
+        //    diceService.rollStandardDie(maxValue, postText);
+        //}
 
+        // Display a message in the output area using the message-display directive
         $scope.displayMessage = function (message) {
             var messageDisplay = angular.element("<message-display message='message'></message-display>");
             var newScope = $scope.$new(true);
@@ -58,61 +72,65 @@
             outputArea.prepend(messageDisplay);
         };
 
+        // Add a destiny point
+        // Destiny points start as light side
         $scope.addDestiny = function () {
             var destiny = "";
-            if (gapi.hangout.data.getValue('destiny')) {
-                destiny = gapi.hangout.data.getValue('destiny');
+            if (hangoutsService.data.getValue('destiny')) {
+                destiny = hangoutsService.data.getValue('destiny');
             }
 
             destiny += "L";
 
             // Set the destiny in the shared state
-            gapi.hangout.data.setValue("destiny", destiny);
+            hangoutsService.data.setValue("destiny", destiny);
 
             // Also add a message telling everyone that someone added a Destiny token
             var message = {
                 messageId: messageService.getNextMessageId(),
                 type: "html",
-                participantId: gapi.hangout.getLocalParticipant().id,
+                participantId: hangoutsService.getLocalParticipant().id,
                 data: {
                     html: "Destiny added"
                 }
             };
 
             // Set the message in the shared state
-            gapi.hangout.data.setValue(message.messageId, JSON.stringify(message));
+            hangoutsService.data.setValue(message.messageId, JSON.stringify(message));
         }
 
+        // Remove the last destiny point added
         $scope.removeDestiny = function () {
             var destiny = "";
-            if (gapi.hangout.data.getValue('destiny')) {
-                destiny = gapi.hangout.data.getValue('destiny');
+            if (hangoutsService.data.getValue('destiny')) {
+                destiny = hangoutsService.data.getValue('destiny');
             }
 
             destiny = destiny.substr(0, destiny.length - 1);
 
             // Set the destiny in the shared state
-            gapi.hangout.data.setValue("destiny", destiny);
+            hangoutsService.data.setValue("destiny", destiny);
 
             // Also add a message telling everyone that someone removed a Destiny token
             var message = {
                 messageId: messageService.getNextMessageId(),
                 type: "html",
-                participantId: gapi.hangout.getLocalParticipant().id,
+                participantId: hangoutsService.getLocalParticipant().id,
                 data: {
                     html: "Destiny removed"
                 }
             };
 
             // Set the message in the shared state
-            gapi.hangout.data.setValue(message.messageId, JSON.stringify(message));
+            hangoutsService.data.setValue(message.messageId, JSON.stringify(message));
         }
 
+        // Toggle a destiny point from light to dark or vice-versa
         $scope.toggleDestiny = function (position) {
             var destiny = "";
 
-            if (gapi.hangout.data.getValue('destiny')) {
-                destiny = gapi.hangout.data.getValue('destiny');
+            if (hangoutsService.data.getValue('destiny')) {
+                destiny = hangoutsService.data.getValue('destiny');
             }
 
             var destinyUsed = destiny.charAt(position);
@@ -124,23 +142,24 @@
             }
 
             // Set the destiny in the shared state
-            gapi.hangout.data.setValue("destiny", destiny);
+            hangoutsService.data.setValue("destiny", destiny);
 
             // Also add a message telling everyone that someone flipped Destiny token
             var message = {
                 messageId: messageService.getNextMessageId(),
                 type: "html",
-                participantId: gapi.hangout.getLocalParticipant().id,
+                participantId: hangoutsService.getLocalParticipant().id,
                 data: {
                     html: "Destiny used: " + (destinyUsed == "L" ? "Light" : "Dark")
                 }
             };
 
             // Set the message in the shared state
-            gapi.hangout.data.setValue(message.messageId, JSON.stringify(message));
+            hangoutsService.data.setValue(message.messageId, JSON.stringify(message));
         }
 
-        gapi.hangout.data.onStateChanged.add(function (stateChangedEvent) {
+        // Add an event handler for whenever the state of the data changes
+        hangoutsService.data.onStateChanged.add(function (stateChangedEvent) {
             // Loop through all the keys that were added to the shared state
             for (var i = 0; i < stateChangedEvent.addedKeys.length; i++) {
                 var key = stateChangedEvent.addedKeys[i].key;
@@ -157,14 +176,14 @@
                     case "destiny":
                         // The current state of the destiny tracker
                         $scope.destiny = "";
-                        if (gapi.hangout.data.getValue('destiny')) {
-                            $scope.destiny = gapi.hangout.data.getValue('destiny');
+                        if (hangoutsService.data.getValue('destiny')) {
+                            $scope.destiny = hangoutsService.data.getValue('destiny');
                         }
                         break;
                 }
             }
         });
 
-        // After everything is defined, call the init function
+        // After everything is defined, call the init function for the controller
         $scope.init();
     }]);

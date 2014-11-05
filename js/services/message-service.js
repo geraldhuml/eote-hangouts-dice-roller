@@ -1,7 +1,7 @@
-﻿appModule.service("messageService", [function () {
+﻿appModule.service("messageService", ["hangoutsService", function (hangoutsService) {
     var nextLocalMessageId = 1;
 
     this.getNextMessageId = function () {
-        return 'msg-' + gapi.hangout.getLocalParticipant().id + '-' + nextLocalMessageId++;
+        return 'msg-' + hangoutsService.getLocalParticipant().id + '-' + nextLocalMessageId++;
     }
 }]);
